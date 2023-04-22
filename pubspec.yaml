@@ -1,6 +1,6 @@
 name: jx
 description: jx file parser
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/jx-parser/jx-dart
 
 environment:

@@ -17,78 +17,234 @@ enum TokenType {
   array,
   object,
   string,
+  identifier,
   number,
   boolean,
   nullValue,
+  keyValuePair,
   variable,
   defaultVariable,
   look,
   function,
-  seperator,
+  separator,
   assignment,
   endOfFile,
   empty,
 }
 
+/// Character codes
+class CharCode {
+  static const backspace = 8;
+  static const tab = 9;
+  static const newline = 10;
+  static const lineFeed = 12;
+  static const carriageReturn = 13;
+  static const space = 32;
+  static const exclamationMark = 33;
+  static const doubleQuote = 34;
+  static const hash = 35;
+  static const dollarSign = 36;
+  static const percent = 37;
+  static const ampersand = 38;
+  static const singleQuote = 39;
+  static const bracketOpen = 40;
+  static const bracketClose = 41;
+  static const asterisk = 42;
+  static const plus = 43;
+  static const comma = 44;
+  static const minus = 45;
+  static const period = 46;
+  static const forwardSlash = 47;
+  static const colon = 58;
+  static const semicolon = 59;
+  static const lessThan = 60;
+  static const equals = 61;
+  static const greaterThan = 62;
+  static const questionMark = 63;
+  static const at = 64;
+  static const E = 69;
+  static const squareBracketOpen = 91;
+  static const backSlash = 92;
+  static const squareBracketClose = 93;
+  static const hat = 94;
+  static const underscore = 95;
+  static const grave = 96;
+  static const b = 98;
+  static const e = 101;
+  static const f = 102;
+  static const n = 110;
+  static const r = 114;
+  static const t = 116;
+  static const u = 117;
+  static const braceOpen = 123;
+  static const pipe = 124;
+  static const braceClose = 125;
+  static const tilde = 126;
+
+  /// Valid char for keys, variable names and function names
+  static bool validIdentifier(int c) {
+    if (c == CharCode.hash || c == CharCode.underscore || c == CharCode.period) {
+      return true;
+    } else if (c > 47 && c < 58) {
+      // 0..9
+      return true;
+    } else if (c > 64 && c < 91) {
+      // A..Z
+      return true;
+    } else if (c > 96 && c < 123) {
+      // a..z
+      return true;
+    }
+    return false;
+  }
+}
+
+/// Array wrapper that supports type name
+class ArrayType {
+  final List<dynamic> items = [];
+  String type = '';
+
+  ArrayType([ArrayType? from]) {
+    if (from != null) {
+      items.addAll(from.items);
+    }
+  }
+
+  // Wrapper methods
+  int get length => items.length;
+  dynamic operator [](int index) => items[index];
+  @override
+  String toString() {
+    return type + items.toString();
+  }
+}
+
+/// Object wrapper that supports type name
+class ObjectType {
+  final Map<String, dynamic> items = {};
+  String type = '';
+
+  ObjectType([ObjectType? from]) {
+    if (from != null) {
+      items.addAll(from.items);
+    }
+  }
+
+  // Wrapper methods
+  int get length => items.length;
+  dynamic operator [](String key) => items[key];
+  Iterable<String> get keys => items.keys;
+  Iterable<dynamic> get values => items.values;
+  @override
+  String toString() {
+    return type + items.toString();
+  }
+}
+
+/// Extension to add functionality to string
+extension StringExt on String {
+  String bookend() {
+    String s = toString();
+    // Find first newline
+    int newlinePos = 0;
+    iterate_forward:
+    for (var i = 0; i < s.length; i++) {
+      switch (s.codeUnitAt(i)) {
+        case CharCode.space:
+        case CharCode.carriageReturn:
+        case CharCode.tab:
+          // ignore
+          break;
+        case CharCode.newline:
+          newlinePos = i + 1;
+          break iterate_forward;
+        default:
+          break iterate_forward;
+      }
+    }
+    if (newlinePos > 0) {
+      s = s.substring(newlinePos);
+    }
+    // Find last newline
+    newlinePos = -1;
+    iterate_backward:
+    for (var i = s.length - 1; i >= 0; i--) {
+      switch (s.codeUnitAt(i)) {
+        case CharCode.space:
+        case CharCode.carriageReturn:
+        case CharCode.tab:
+          // ignore
+          break;
+        case CharCode.newline:
+          newlinePos = i;
+          break iterate_backward;
+        default:
+          break iterate_backward;
+      }
+    }
+    if (newlinePos >= 0) {
+      s = s.substring(0, newlinePos);
+    }
+    return s;
+  }
+}
+
 /// A token is one individual part of an expression.It could be a number,
 /// a math operator, a function name, etc.
-///
 class Token {
-  int pos = 0;
   int line = 1;
   int char = 1;
   TokenType type = TokenType.unknown;
-  TokenType closingType = TokenType.unknown;
-  String rawValue = '';
-  List<Token> args = [];
   dynamic _value;
+  bool open = false;
+
+  List<dynamic>? args;
+  Map<String, dynamic>? namedArgs;
 
   /// Constructor
   Token([this.type = TokenType.unknown]);
-
-  /// Shorthand for creating operator
-  Token.asOperator(String op) {
-    type = TokenType.operator;
-    value = op;
-  }
 
   /// Get value
   dynamic get value => _value;
 
   /// Shorthand for converting to operator
-  void toOperator(String op) {
-    value = op;
+  void toOperator(int op) {
+    _value = op;
     type = TokenType.operator;
   }
 
-  /// Set the actual value of the token (based on parsing rawValue, usually) and
-  /// try to determine it's actual type.
+  /// Set the actual value of the token and try to determine it's actual type.
   set value(dynamic v) {
-    _value = v;
-    if (v == null || v == double.nan) {
-      _value = null;
-      type = TokenType.nullValue;
-    } else if (v is List) {
-      type = TokenType.array;
-    } else if (v is String) {
-      type = TokenType.string;
+    if (v is List) {
+      _value = ArrayType()..items.addAll(v);
     } else if (v is Map) {
-      type = TokenType.object;
-    } else if (v is double) {
-      type = TokenType.number;
-    } else if (v is int) {
-      type = TokenType.number;
-    } else if (v is bool) {
-      type = TokenType.boolean;
+      _value = ObjectType()..items.addAll(v as Map<String, dynamic>);
     } else {
-      type = TokenType.unknown;
+      _value = v;
+    }
+    if (type == TokenType.unknown) {
+      if (v == null || v == double.nan) {
+        _value = null;
+        type = TokenType.nullValue;
+      } else if (v is String) {
+        type = TokenType.string;
+      } else if (v is double) {
+        type = TokenType.number;
+      } else if (v is int) {
+        type = TokenType.number;
+      } else if (v is bool) {
+        type = TokenType.boolean;
+      } else if (v is ArrayType || v is List) {
+        type = TokenType.array;
+      } else if (v is ObjectType || v is Map) {
+        type = TokenType.object;
+      }
     }
   }
 
-  /// Reverse the sign of the value
-  Token negate() {
-    value = -value;
-    return this;
+  @override
+  String toString() {
+    return '${type.name}(${value ?? ''})';
   }
 
   /// Debug this token
@@ -96,307 +252,43 @@ class Token {
     var s = ''.padRight(tab, ' ');
     print('${s}token {');
     print('$s  line: $line, pos: $char');
-    print('$s  rawValue: "$rawValue"');
-    if (value is String) {
-      print('$s  value: "$value"');
+    if (type == TokenType.operator) {
+      print('$s  type: operator(${String.fromCharCode(value)})');
     } else {
-      print('$s  value: $value');
+      print('$s  type: ${type.name}');
     }
     switch (type) {
-      case TokenType.operator:
-        print('$s  type: operator($value)');
+      case TokenType.string:
+      case TokenType.identifier:
+      case TokenType.variable:
+      case TokenType.defaultVariable:
+      case TokenType.keyValuePair:
+        print('$s  value: "$value"');
+        break;
+      case TokenType.array:
+      case TokenType.object:
+      case TokenType.boolean:
+      case TokenType.number:
+      case TokenType.nullValue:
+        print('$s  value: $value${open ? '...' : ''}');
+        break;
+      case TokenType.function:
+        print('$s  value: $value');
+        print('$s  args: $args');
+        print('$s  named: $namedArgs');
         break;
       default:
-        print('$s  type: ${type.name}');
-        break;
-    }
-    switch (closingType) {
-      case TokenType.operator:
-        print('$s  closingType: operator($value)');
-        break;
-      default:
-        print('$s  closingType: ${type.name}');
         break;
     }
     print('$s}');
   }
 }
 
-/// The stack for storing and processing values and operators
-class Stack {
-  TokenType last = TokenType.unknown;
-  List<Token> stack = [];
-  int _nested = 0;
-  int get nested => _nested;
-
-  /// Check if stack is empty
-  bool isEmpty() {
-    return stack.isEmpty;
-  }
-
-  /// Add a token to the stack. Checks for correct token order.
-  void push(Token token) {
-    // Check if allowed to push token
-    switch (token.type) {
-      // Pushing an operator
-      case TokenType.operator:
-        if (token.value == '-') {
-          if (stack.isEmpty || !lastIsValue()) {
-            stack.add(Token()..value = 0.0);
-            last = TokenType.number;
-          }
-        }
-        switch (last) {
-          // An operator can only follow a value
-          case TokenType.operator:
-          case TokenType.openBracket:
-          case TokenType.unknown:
-            unexpected(token);
-            break;
-          // Push the operator
-          default:
-            // If no other operators, always push
-            if (stack.length < 2) {
-              stack.add(token);
-            }
-            // Otherwise prcoess stack until a lower token is found
-            else {
-              while ((stack.length > 1) && lowerOrSame(token)) {
-                process(1);
-              }
-              stack.add(token);
-            }
-            break;
-        }
-        break;
-      // An open bracket cannot follow a value
-      // A negative number can follow a value because it is likely a subtraction (e.g. 17 -8)
-      default:
-        {
-          switch (last) {
-            case TokenType.operator:
-            case TokenType.openBracket:
-            case TokenType.array:
-            case TokenType.object:
-            case TokenType.unknown:
-              // if bracket, increase nesting counter
-              if (token.type == TokenType.openBracket) _nested++;
-              // Push token
-              stack.add(token);
-              break;
-            case TokenType.number:
-              if (token.value < 0) {
-                push(Token.asOperator('-'));
-                stack.add(token.negate());
-              } else {
-                unexpected(token);
-              }
-              break;
-            default:
-              unexpected(token);
-              break;
-          }
-        }
-    }
-    // Remember last
-    last = token.type;
-  }
-
-  /// Process one or more operations from the stack
-  Token process([int count = 0]) {
-    // Need at least three tokens on the stack to process it
-    while (stack.length > 2) {
-      var b = stack.removeLast();
-      var op = stack.removeLast();
-      var a = stack.removeLast();
-
-      var c = Token();
-      c.type = a.type;
-      if (op.type == TokenType.operator) {
-        switch (op.value) {
-          case '+':
-            if (a.type == TokenType.object) {
-              if (b.type == TokenType.object) {
-                c.value = {...(a.value as Map), ...(b.value as Map)};
-              } else {
-                throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
-              }
-            } else if (a.type == TokenType.array) {
-              if (b.type == TokenType.array) {
-                c.value = a.value + b.value;
-              } else {
-                c.value = a.value;
-                c.value.add(b.value);
-              }
-            } else if (b.type == TokenType.array) {
-              c.value = b.value;
-              c.value.insert(0, a.value);
-            } else if (a.type != TokenType.number || b.type != TokenType.number) {
-              c.value = a.value.toString() + b.value.toString();
-            } else {
-              c.value = a.value + b.value;
-            }
-            break;
-          case '-':
-            if (a.type == TokenType.object) {
-              if (b.type == TokenType.object) {
-                c.value = a.value;
-                (c.value as Map).removeWhere((key, value) => (b.value as Map).keys.contains(key));
-              } else if (b.type == TokenType.array) {
-                c.value = a.value;
-                (c.value as Map).removeWhere((key, value) => (b.value as List).contains(key));
-              } else {
-                c.value = a.value;
-                (c.value as Map).removeWhere((key, value) => b.value == key);
-              }
-            } else if (a.type == TokenType.array) {
-              if (b.type == TokenType.array) {
-                c.value = a.value;
-                (c.value as List).removeWhere((item) => (b.value as List).contains(item));
-              } else {
-                c.value = a.value;
-                (c.value as List).removeWhere((item) => b.value == item);
-              }
-            } else if (a.type != TokenType.number) {
-              throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
-            } else {
-              c.value = a.value - b.value;
-            }
-
-            break;
-          case '/':
-            c.value = a.value / b.value;
-            break;
-          case '*':
-            c.value = a.value * b.value;
-            break;
-          case '^':
-            c.value = pow(a.value, b.value);
-            break;
-          case '%':
-            c.value = a.value % b.value;
-            break;
-          default:
-            throw UnexpectedTokenException('Unknown operator "${op.value}"', op.line, op.char);
-        }
-      }
-      stack.add(c);
-      count--;
-      if (count == 0) break;
-    }
-    if (stack.isEmpty) {
-      return Token(TokenType.empty);
-    }
-    return stack[0];
-  }
-
-  /// Process stack until an opening bracket is found
-  void processToBracket() {
-    // Otherwise process to opening bracket
-    while (true) {
-      // If next on stack is opening bracket, remove it and exit
-      if (stack.last.type == TokenType.openBracket) {
-        stack.removeLast();
-        return;
-      }
-      // If second on stack is opening bracket, 'process' the value in between
-      if (stack[stack.length - 2].type == TokenType.openBracket) {
-        var t = stack.removeLast();
-        stack.removeLast();
-        stack.add(t);
-        return;
-      }
-      // Otherwise process a single operation
-      process(1);
-      // Exit if stack is empty
-      if (stack.length < 2) break;
-    }
-  }
-
-  /// Check if the token is lower than the one on top of the stack
-  bool lowerOrSame(Token a) {
-    var b = stack[stack.length - 2];
-    return order(a) <= order(b);
-  }
-
-  /// Return the precedence order of an operator
-  int order(Token t) {
-    if (t.type == TokenType.openBracket) {
-      return 1;
-    } else if (t.type == TokenType.operator) {
-      switch (t.value) {
-        case '+':
-        case '-':
-          return 2;
-        case '*':
-        case '/':
-          return 3;
-        case '^':
-        case '%':
-          return 4;
-      }
-    }
-    throw UnexpectedTokenException('Cannot calculate precendence. Unknown operator "${t.rawValue}"', t.line, t.char);
-  }
-
-  /// Check if the last token on the stack is an operator
-  bool lastIsOperator() {
-    return last == TokenType.operator;
-  }
-
-  /// Check if the last token on the stack is a value type
-  bool lastIsValue() {
-    switch (last) {
-      case TokenType.array:
-      case TokenType.boolean:
-      case TokenType.nullValue:
-      case TokenType.number:
-      case TokenType.object:
-      case TokenType.string:
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  /// Unexpected token found
-  void unexpected(Token t) {
-    var desc = '';
-    switch (t.type) {
-      case TokenType.operator:
-        desc = ' operator("${t.value}")';
-        break;
-      case TokenType.string:
-      case TokenType.number:
-      case TokenType.boolean:
-      case TokenType.function:
-        desc = ' "${t.rawValue}"';
-        break;
-      default:
-        desc = ' ${t.type.name}';
-        break;
-    }
-    throw UnexpectedTokenException('Unexpected ${t.type.name} token$desc', t.line, t.char);
-  }
-
-  /// Trace this stack
-  void trace([int tab = 0]) {
-    var s = ''.padRight(tab, ' ');
-    print('${s}stack');
-    if (stack.isEmpty) {
-      print('$s  empty');
-      return;
-    }
-    for (int i = 0; i < stack.length; i++) {
-      print('$s$i:');
-      stack[i].trace(tab + 2);
-    }
-  }
-}
-
 /// JX parser class. Call JxParser.parse(String str) to parse JX from a string. Implement
 /// the onFunction callback to support custom functionality.
 class JxParser {
+  List<Token> stack = [];
+  int nested = 0;
   String str = '';
   int pos = 0;
   int line = 1;
@@ -406,231 +298,63 @@ class JxParser {
   final Map<String, dynamic> variables = {};
 
   /// Callback to catch any unknown functions in the equation. (e.g. myFunc( ) )
-  dynamic Function(String, List<dynamic>)? onFunction;
+  dynamic Function(String, List<dynamic>, Map<String, dynamic>)? onFunction;
 
   /// The options used by the parser
   final options = Options();
 
   /// Start parsing a JX expression
   dynamic parse(String str) {
+    stack.clear();
     this.str = str;
     pos = 0;
     line = 1;
     char = 1;
-    return parseExpr(false)?.value;
-  }
 
-  /// Parse an expression. An expression is actually a full equation, but because of
-  /// function calls, multiple expressions can exist in an equation. For example:
-  /// 17 + 3 * 1.22 / sin( 18.11 ^ 2 - 0.399 * 4229 )
-  ///		The first expression is 17 + 3 * 1.22 / sin(...)
-  ///		A second expression is 18.11 ^ 2 - 0.399 * 4229
-  /// Returns The last token to be processed, which contains the value and other important info
-  Token? parseExpr(bool inFunc, {bool isKey = false}) {
-    Stack stack = Stack();
     late Token token;
-
     while (pos < str.length) {
-      // Find the next token
-      token = parseToken(isKey);
-      //token.trace();
-
-      // Process the found token
-      switch (token.type) {
-        // Parse an array (values)
-        case TokenType.arrayStart:
-          var arr = [];
-          var found = false;
-          // Parse expressions and add to array until end of array is found
-          while (pos < str.length) {
-            Token? t = parseExpr(false);
-            if (t != null) {
-              arr.add(t.value);
-            }
-            if (t == null || t.closingType == TokenType.arrayEnd) {
-              token.value = arr;
-              stack.push(token);
-              found = true;
-              break;
-            }
-          }
-          if (found) continue;
-          throw UnexpectedEndOfFileException(
-            'Unexpected end of file after "${token.rawValue}" token',
-            token.line,
-            token.char,
-          );
-        // Parse an object (key/values)
-        case TokenType.objectStart:
-          Map<String, dynamic> obj = {};
-          String? key;
-          Token? k;
-          Token? v;
-          var found = false;
-          while (pos < str.length) {
-            // Parse expression, which is key, or end of object
-            k = parseExpr(false, isKey: true);
-            if (k != null) {
-              if (k.closingType != TokenType.assignment) {
-                throw UnexpectedTokenException('Colon expected', line, char);
-              }
-              key = k.value.toString();
-              // Get the value
-              v = parseExpr(false);
-              // The key is a variable...
-              if (k.type == TokenType.variable) {
-                variables[key] = v?.value;
-              }
-              // The key is a default variable...
-              else if (k.type == TokenType.defaultVariable) {
-                if (!variables.keys.contains(key)) variables[key] = v?.value;
-              }
-              // Standard key...
-              else {
-                obj[key] = v?.value;
-              }
-            }
-            // Check if the object is closed
-            if ((k == null) || (v?.closingType == TokenType.objectEnd)) {
-              token.value = obj;
-              stack.push(token);
-              found = true;
-              break;
-            }
-          }
-          if (found) continue;
-          throw UnexpectedEndOfFileException('Unexpected end of file after "${token.rawValue}" token', line, char);
-        // Function found. Parse the function and push the result to the stack
-        case TokenType.function:
-          parseFunction(token);
-          stack.push(token);
-          break;
-        // Seperator found. Process stack
-        case TokenType.seperator:
-          token = stack.process();
-          token.closingType = TokenType.seperator;
-          return token;
-        // Close bracket found
-        case TokenType.closeBracket:
-          // If there are opening brackets, process the stack to the opening bracket
-          if (stack.nested > 0) {
-            stack.processToBracket();
-          }
-          // The there are no opening brackets, should be last function argument. return it.
-          else {
-            if (!inFunc) unexpected(token);
-            token = stack.process();
-            token.closingType = TokenType.closeBracket;
-            return token;
-          }
-          break;
-        // End of file, array, object encountered, or assignment encountered
-        case TokenType.endOfFile:
-        case TokenType.arrayEnd:
-        case TokenType.objectEnd:
-        case TokenType.assignment:
-          // Remember closing type
-          var tt = token.type;
-          // Check if in a function
-          if (inFunc) {
-            throw UnexpectedTokenException('Unexpected token within function', token.line, token.char);
-          }
-          // Check if last is operator
-          if (stack.lastIsOperator()) {
-            throw UnexpectedTokenException('Unexpected token after operator', token.line, token.char);
-          }
-          // If stack is empty, this is a trailing seperator and should be ignored
-          if (stack.isEmpty()) {
-            return null;
-          }
-          // Process the stack
-          token = stack.process();
-          token.closingType = tt;
-          return token;
-        // Found a mathematical operator, open bracket or value
-        case TokenType.operator:
-        case TokenType.openBracket:
-        case TokenType.number:
-        case TokenType.string:
-        case TokenType.boolean:
-        case TokenType.nullValue:
-        case TokenType.variable:
-        case TokenType.defaultVariable:
-          // Push to the stack
-          stack.push(token);
-          break;
-        // Something else has been found
-        default:
-          unexpected(token);
-          break;
-      }
+      token = parseToken();
+      push(token);
     }
 
-    return token;
-  }
-
-  /// Parse all arguments for a function. At this point we have the function
-  /// name, and we are inside the bracket, about to parse the first argument.
-  Token parseFunction(Token token) {
-    token.args = [];
-    Token? argument;
-    while (true) {
-      // Process the argument
-      argument = parseExpr(true);
-      if (argument == null) {
-        throw FunctionException('Error parsing function', line, char);
-      }
-      token.args.add(argument);
-
-      // Check expression was terminated correctly
-      if (argument.closingType == TokenType.closeBracket) {
-        token.value = processFunction(token);
-        break;
-      }
-      // If not end of function, seperator is expected
-      else if (argument.closingType != TokenType.seperator) {
-        unexpected(token);
-      }
-    }
-    return token;
+    return stack.last.value;
   }
 
   /// Grab the next token. It could be a value, an operator, a function, etc.
   /// Comments and whitespace are ignored.
-  Token parseToken([bool isKey = false]) {
-    String quote = '';
-    bool started = false;
+  Token parseToken() {
+    int quote = 0;
     Token token = Token();
+    StringBuffer? string;
 
     string_iterator:
     while (pos < str.length) {
       // Get next character from input
-      String c = next();
-      if (c == '\n') {
+      int c = next();
+      if (c == CharCode.newline) {
         line++;
         char = 1;
       }
 
       // Have not yet started
-      if (!started) {
-        token.pos = pos - 1;
+      if (string == null) {
         token.line = line;
         token.char = char - 1;
         switch (c) {
-          // Ignore linespace
-          case '\n':
-          case ' ':
-          case '\r':
-          case '\t':
+          // Ignore whitespace
+          case CharCode.newline:
+          case CharCode.space:
+          case CharCode.carriageReturn:
+          case CharCode.tab:
             break;
           // Comment
-          case '/':
-            String n = peek();
-            // Line comment. Ignore until newline
-            if (n == '/') {
+          case CharCode.forwardSlash:
+            int n = peek();
+            // Line comment. Ignore until next newline
+            if (n == CharCode.forwardSlash) {
               while (pos < str.length) {
                 n = next();
-                if (n == '\n') {
+                if (n == CharCode.newline) {
                   line++;
                   char = 1;
                   break;
@@ -639,13 +363,13 @@ class JxParser {
               break;
             }
             // Block comment. Ignore until end of block comment
-            else if (n == '*') {
+            else if (n == CharCode.asterisk) {
               while (pos < str.length) {
                 n = next();
-                if (n == '\n') {
+                if (n == CharCode.newline) {
                   line++;
                   char = 1;
-                } else if ((n == '/') && peek(-2) == '*') {
+                } else if ((n == CharCode.forwardSlash) && peek(-2) == CharCode.asterisk) {
                   break;
                 }
               }
@@ -655,365 +379,207 @@ class JxParser {
             token.toOperator(c);
             break string_iterator;
           // Array
-          case '[':
+          case CharCode.squareBracketOpen:
             token.type = TokenType.arrayStart;
             return token;
-          case ']':
+          case CharCode.squareBracketClose:
             token.type = TokenType.arrayEnd;
             return token;
           // Object
-          case '{':
+          case CharCode.braceOpen:
             token.type = TokenType.objectStart;
             return token;
-          case '}':
+          case CharCode.braceClose:
             token.type = TokenType.objectEnd;
             return token;
           // Start string
-          case '"':
-          case '\'':
+          case CharCode.doubleQuote:
+          case CharCode.singleQuote:
             token.type = TokenType.string;
+            string = StringBuffer();
             quote = c;
-            started = true;
             break;
           // Operators
-          case '+':
-          case '*':
-          case '^':
-          case '%':
-            token.toOperator(c);
-            break string_iterator;
-          // Special case, negative number or subtract operator
-          case '-':
-            /*
-            int cc = peek().codeUnitAt(0); // Peek at next char
-            if (((cc < '0'.codeUnitAt(0)) || (cc > '9'.codeUnitAt(0))) && (cc != '.'.codeUnitAt(0))) {
-              token.toOperator(c);
-              break string_iterator;
-            }
-            token.rawValue += c;
-            started = true;
-            break;
-            */
+          case CharCode.plus:
+          case CharCode.minus:
+          case CharCode.asterisk:
+          case CharCode.hat:
+          case CharCode.percent:
             token.toOperator(c);
             break string_iterator;
           // Brackets
-          case '(':
+          case CharCode.bracketOpen:
             token.type = TokenType.openBracket;
             return token;
-          case ')':
+          case CharCode.bracketClose:
             token.type = TokenType.closeBracket;
             return token;
-          // Seperator (next argument)
-          case ',':
-          case ';':
-            token.type = TokenType.seperator;
+          // Separator (next argument)
+          case CharCode.comma:
+          case CharCode.semicolon:
+            token.type = TokenType.separator;
             return token;
-          // Assignment (value follows)
-          case ':':
+          // Assignment
+          case CharCode.colon:
             token.type = TokenType.assignment;
             return token;
           // Variable
-          case '\$':
-            if (!isKey) {
-              throw UnexpectedTokenException('Unexpected variable definition "\$"', line, char);
-            }
+          case CharCode.dollarSign:
             token.type = TokenType.variable;
-            started = true;
+            string = StringBuffer();
             break;
           // Default variable
-          case '?':
-            if (peek() == '\$') {
-              if (!isKey) {
-                throw UnexpectedTokenException('Unexpected variable definition "\$"', line, char);
-              }
+          case CharCode.questionMark:
+            string = StringBuffer();
+            if (peek() == CharCode.dollarSign) {
               next();
               token.type = TokenType.defaultVariable;
             } else {
-              token.rawValue += c;
+              string.writeCharCode(c);
             }
-            started = true;
             break;
           // Any other character
           default:
-            token.rawValue += c;
-            started = true;
+            string = StringBuffer();
+            string.writeCharCode(c);
             break;
-        }
-      }
+        } // switch(c)
+      } // !string
 
-      // Parsing string
+      // Quoted string
       else if (token.type == TokenType.string) {
         switch (c) {
           // End string
-          case '"':
-          case '\'':
+          case CharCode.doubleQuote:
+          case CharCode.singleQuote:
             if (quote == c) {
               break string_iterator;
             }
-            token.rawValue += c;
+            string.writeCharCode(c);
             break;
           // Escaped character
-          case '\\':
+          case CharCode.backSlash:
             var cc = next();
             switch (cc) {
-              case 'r':
-                token.rawValue += '\r';
+              case CharCode.r:
+                string.writeCharCode(CharCode.carriageReturn);
                 break;
-              case 'n':
-                token.rawValue += '\n';
+              case CharCode.n:
+                string.writeCharCode(CharCode.newline);
                 break;
-              case 't':
-                token.rawValue += '\t';
+              case CharCode.t:
+                string.writeCharCode(CharCode.tab);
                 break;
-              case 'b':
-                token.rawValue += String.fromCharCode(8);
+              case CharCode.f:
+                string.writeCharCode(CharCode.lineFeed);
                 break;
-              case 'f':
-                token.rawValue += String.fromCharCode(12);
-                break;
-              case 'u':
+              case CharCode.u:
               default:
-                token.rawValue += cc; // Literally add the char
+                string.writeCharCode(cc);
             }
             break;
-          // Any other character, including inline newlines, tabs and other whitespace!
+          // Any other character
           default:
-            token.rawValue += c;
+            string.writeCharCode(c);
         }
       }
 
-      // Variable, function or unquoted key
+      // Unquoted string
+      else if (CharCode.validIdentifier(c)) {
+        string.writeCharCode(c);
+      } else if (c == CharCode.plus && peek(-2) == CharCode.E) {
+        string.writeCharCode(c);
+      }
+
+      // Terminator
       else {
-        switch (c) {
-          // If terminated by bracket, is a function
-          case '(':
-            token.type = TokenType.function;
-            break string_iterator;
-          // Check for exponential notation (123e+7, 123E+7), or end
-          case '+':
-            if (peek(-2).toLowerCase() == 'e') {
-              token.rawValue += c;
-              break;
-            } else if (isKey) {
-              token.rawValue += c;
-              break;
-            }
-            rewind();
-            break string_iterator;
-          // Ends if find operator, bracket, seperator or assignment
-          case '-':
-          case '/':
-          case '*':
-          case '^':
-          case '%':
-          case ')':
-          case ']':
-          case '}':
-          case ',':
-          case ';':
-            if (isKey) {
-              token.rawValue += c;
-              break;
-            }
-            rewind();
-            break string_iterator;
-          // Start end sequence if whitespace or colon found
-          case ' ':
-          case '\r':
-          case '\n':
-          case '\t':
-          case ':':
-            if (isKey && token.type == TokenType.unknown) {
-              token.type = TokenType.string;
-            }
-            rewind();
-            break string_iterator;
-          // Other
-          default:
-            token.rawValue += c;
-            break;
-        }
+        rewind();
+        break string_iterator;
       }
     }
 
     // Check for end of file
-    if (token.rawValue == '' && pos >= str.length) {
+    if ((string == null || string.isEmpty) && pos >= str.length) {
       token.type = TokenType.endOfFile;
+      return token;
     }
-    // Token is default variable (always assignment)
-    else if (token.type == TokenType.defaultVariable) {
-      if (!isKey) {
-        throw VariableException('Unexpected default variable assignment', token.line, token.char);
-      }
-      token.value = token.rawValue;
-      token.type = TokenType.defaultVariable;
-    }
-    // Token is a variable
-    else if (token.type == TokenType.variable) {
-      if (token.rawValue.isEmpty) {
+    // Token is a variable or default variable
+    else if (token.type == TokenType.variable || token.type == TokenType.defaultVariable) {
+      if (string!.isEmpty) {
         throw IllegalTokenName('Variable must have a name', token.line, token.char);
       }
-      final key = options.caseInsensitiveBuiltins ? token.rawValue.toLowerCase() : token.rawValue;
+      token.value = string.toString();
+      final String key = options.caseInsensitiveBuiltins ? token.value.toLowerCase() : token.value;
       if (Builtin.variables.containsKey(key)) {
-        throw IllegalTokenName('Variable name "${token.rawValue}" not allowed', token.line, token.char);
+        throw IllegalTokenName('Variable name "${token.value}" not allowed', token.line, token.char);
       }
-      token.value = token.rawValue;
-      token.type = TokenType.variable;
     }
     // Token is a string
     else if (token.type == TokenType.string) {
-      String s = token.rawValue;
       if (options.trimLongStrings) {
-        // Find first newline
-        int newlinePos = 0;
-        iterate_forward:
-        for (var i = 0; i < s.length; i++) {
-          switch (s[i]) {
-            case ' ':
-            case '\r':
-            case '\t':
-              // ignore
-              break;
-            case '\n':
-              newlinePos = i + 1;
-              break iterate_forward;
-            default:
-              break iterate_forward;
-          }
-        }
-        if (newlinePos > 0) {
-          s = s.substring(newlinePos);
-        }
-        // Find last newline
-        newlinePos = -1;
-        iterate_backward:
-        for (var i = s.length - 1; i >= 0; i--) {
-          switch (s[i]) {
-            case ' ':
-            case '\r':
-            case '\t':
-              // ignore
-              break;
-            case '\n':
-              newlinePos = i;
-              break iterate_backward;
-            default:
-              break iterate_backward;
-          }
-        }
-        if (newlinePos >= 0) {
-          s = s.substring(0, newlinePos);
-        }
+        token.value = string.toString().bookend();
+      } else {
+        token.value = string.toString();
       }
-      token.value = s;
     }
     // Token is unknown (number, variable or unquoted key)
     else if (token.type == TokenType.unknown) {
-      // Unquoted key
-      if (isKey) {
-        token.value = token.rawValue;
+      if (string == null) {
+        throw UnexpectedTokenException('Unexpected token found', line, char);
       }
-      // Variable
-      else {
-        // See if it's a number
-        token.value = strToNum(token.rawValue);
-        final key = options.caseInsensitiveBuiltins ? token.rawValue.toLowerCase() : token.rawValue;
-        if (token.value != null) {
-          token.type = TokenType.number;
-        } else if (Builtin.variables.containsKey(key)) {
-          token.value = Builtin.variables[key];
-        } else if (variables.containsKey(token.rawValue)) {
-          token.value = variables[token.rawValue];
-        } else if (options.errorOnUndefinedVariable) {
-          throw UnhandledVariableException('Unhandled variable "${token.rawValue}"', token.line, token.char);
-        } else {
-          token.value = null;
-        }
+      final strValue = string.toString();
+      final numValue = strToNum(strValue);
+      if (numValue != null) {
+        token.value = numValue;
+        token.type = TokenType.number;
+      } else {
+        token.type = TokenType.identifier;
+        token.value = strValue;
       }
     }
     return token;
   }
 
   /// Process the function described by the token
-  dynamic processFunction(Token token) {
-    String fn = token.rawValue;
+  Token processFunction(Token token) {
+    String fn = token.value;
 
     final key = options.caseInsensitiveBuiltins ? fn.toLowerCase() : fn;
     if (Builtin.functions.containsKey(key)) {
-      Builtin builtin = Builtin.functions[key]!;
-      if (checkArgs(token, builtin.types, fn)) {
+      Builtin? builtin = Builtin.check(key, token.args!);
+      if (builtin != null) {
         List<dynamic> args = [];
-        for (var i = 0; i < token.args.length; i++) {
+        for (var i = 0; i < token.args!.length; i++) {
           switch (builtin.types[i]) {
             case ArgType.int:
-              args.add((token.args[i].value as num).round());
+              args.add((token.args![i] as num).round());
               break;
             case ArgType.number:
-              args.add((token.args[i].value as num).toDouble());
+              args.add((token.args![i] as num).toDouble());
               break;
             default:
-              args.add(token.args[i].value);
+              args.add(token.args![i]);
               break;
           }
         }
-        return Function.apply(builtin.fn, args);
+        return Token()..value = Function.apply(builtin.fn, args);
+      } else {
+        List<String> typeNames = [];
+        for (final t in builtin!.types) {
+          typeNames.add(t.name);
+        }
+        throw FunctionException('Incorrect args for "$fn". Expect (${typeNames.join(', ')})', token.line, token.char);
       }
     } else {
       if (onFunction == null) {
         if (options.errorOnUnhandledFunction) {
           throw UnhandledFunctionException('Unknown function "$fn"', token.line, token.char);
         } else {
-          return null;
+          return Token()..value = null;
         }
       }
-      List<dynamic> args = [];
-      for (final t in token.args) {
-        if (t.type != TokenType.empty) {
-          args.add(t.value);
-        }
-      }
-      dynamic res = onFunction?.call(fn, args);
-      return res;
+      return Token()..value = onFunction?.call(fn, token.args!, token.namedArgs!);
     }
-  }
-
-  /// Check that the arguments stored on this token are of the correct type
-  bool checkArgs(Token token, List<ArgType> types, [String? fn]) {
-    bool ok = false;
-    if (token.args.length == types.length) {
-      ok = true;
-      check_types:
-      for (var i = 0; i < types.length; i++) {
-        switch (types[i]) {
-          case ArgType.int:
-            if (token.args[i].value is! int) {
-              ok = false;
-              break check_types;
-            }
-            break;
-          case ArgType.number:
-            if ((token.args[i].value is! double) && (token.args[i].value is! int)) {
-              ok = false;
-              break check_types;
-            }
-            break;
-          case ArgType.string:
-            if (token.args[i].value is! String) {
-              ok = false;
-              break check_types;
-            }
-            break;
-        }
-      }
-    }
-    if (!ok && fn != null) {
-      List<String> typeNames = [];
-      for (final t in types) {
-        typeNames.add(t.name);
-      }
-      throw FunctionException('Incorrect args for "$fn". Expect (${typeNames.join(', ')})', token.line, token.char);
-    }
-    return ok;
   }
 
   /// Handle doubles, hex, binary 0b1001110 or #fff colors.
@@ -1025,7 +591,7 @@ class JxParser {
       } else if (str.length == 7) {
         return int.parse(str.substring(1), radix: 16);
       } else {
-        throw 'Unknown hex format "$str"';
+        return null;
       }
     }
     // Check for 0x0 or 0b0
@@ -1046,36 +612,460 @@ class JxParser {
     return (i == f) ? i.toInt() : f;
   }
 
-  void unexpected(Token t) {
-    var desc = '';
-    switch (t.type) {
-      case TokenType.operator:
-        desc = ' TTOperator("${String.fromCharCode(t.value)}")';
-        break;
+  /// Return the next character and advance
+  int next() {
+    char++;
+    return str.codeUnitAt(pos++);
+  }
+
+  /// Return a character without advancing
+  int peek([int offset = 0]) {
+    return str.codeUnitAt(pos + offset);
+  }
+
+  /// Move backwards
+  void rewind([int amount = 1]) {
+    char -= amount;
+    pos -= amount;
+  }
+
+  /// Get last token
+  Token get last => stack.isEmpty ? Token(TokenType.empty) : stack.last;
+
+  /// Get type of last token on stack
+  TokenType get lastTokenType => last.type;
+
+  /// Check if last token on stack is open
+  bool get lastIsOpen => last.open;
+
+  /// Add a token to the stack. Checks for correct token order.
+  void push(Token token) {
+    //print('push $token');
+    switch (token.type) {
+      // Pushing a value
       case TokenType.string:
       case TokenType.number:
       case TokenType.boolean:
-      case TokenType.function:
-        desc = ' "${t.rawValue}"';
+      case TokenType.nullValue:
+      case TokenType.identifier:
+        stack.add(token);
         break;
+
+      // Open array
+      case TokenType.arrayStart:
+        token.type = TokenType.array;
+        token.value = ArrayType();
+        token.open = true;
+        if (lastTokenType == TokenType.identifier) {
+          Token t = stack.removeLast();
+          token.value.type = t.value;
+        }
+        stack.add(token);
+        break;
+
+      // Open object
+      case TokenType.objectStart:
+        token.type = TokenType.object;
+        token.value = ObjectType();
+        token.open = true;
+        if (lastTokenType == TokenType.identifier) {
+          Token t = stack.removeLast();
+          token.value.type = t.value;
+        }
+        stack.add(token);
+        break;
+
+      // Open bracket
+      case TokenType.openBracket:
+        // If previous item is identifier, this is a function
+        if (lastTokenType == TokenType.identifier || lastTokenType == TokenType.string) {
+          stack.last.type = TokenType.function;
+          stack.last.open = true;
+          stack.last.args = [];
+          stack.last.namedArgs = {};
+        }
+        // Otherwise it's a bracket in an equation
+        else {
+          nested++;
+          stack.add(token);
+        }
+        break;
+
+      // Assignment
+      case TokenType.assignment:
+        // Check if last is operator
+        if (isOperator()) {
+          throw UnexpectedTokenException('Unexpected token after operator', token.line, token.char);
+        }
+        // Process the stack
+        processOperations();
+        // Check if last is identifier or string
+        if (lastTokenType == TokenType.identifier || lastTokenType == TokenType.string) {
+          stack.last.type = TokenType.keyValuePair;
+          stack.last.value = stack.last.value;
+          stack.last.open = true;
+        }
+        // Check if last is variable
+        else if ((lastTokenType != TokenType.variable && lastTokenType != TokenType.defaultVariable) || !lastIsOpen) {
+          throwOnUnexpectedToken(token);
+        }
+        break;
+
+      // Pushing an operator
+      case TokenType.operator:
+        // Operator must follow a value
+        if (!isValue() || lastIsOpen) {
+          // Unless it's a minus sign
+          if (token.value == CharCode.minus) {
+            stack.add(Token()..value = 0.0);
+          } else {
+            throwOnUnexpectedToken(token);
+          }
+        }
+        // If no other operators, always push
+        if (stack.length < 2) {
+          stack.add(token);
+        }
+        // Otherwise process stack until a lower token is found
+        else {
+          while ((stack.length > 1) && lowerOrSame(token)) {
+            processOperations(limit: 1);
+          }
+          stack.add(token);
+        }
+        break;
+
+      // Pushing object end
+      case TokenType.objectEnd:
+        processOperations(tryAssign: true);
+        if (lastTokenType != TokenType.object) {
+          throwOnUnexpectedToken(token);
+        }
+        last.open = false;
+        break;
+
+      // Pushing object end
+      case TokenType.arrayEnd:
+        processOperations(tryAssign: true);
+        if (lastTokenType != TokenType.array) {
+          throwOnUnexpectedToken(token);
+        }
+        last.open = false;
+        break;
+
+      // Pushing object end
+      case TokenType.closeBracket:
+        // If there are opening brackets, process the stack to the opening bracket
+        if (nested > 0) {
+          processToBracket();
+        } else {
+          processOperations(tryAssign: true);
+          if (lastTokenType != TokenType.function) {
+            throwOnUnexpectedToken(token);
+          }
+          stack.add(processFunction(stack.removeLast()));
+          processOperations(tryAssign: true);
+        }
+        break;
+
+      // Separator
+      case TokenType.separator:
+        processOperations(tryAssign: true, processIdentifiers: true);
+        break;
+
+      // Variable definition
+      case TokenType.variable:
+      case TokenType.defaultVariable:
+        token.open = true;
+        stack.add(token);
+        break;
+
+      // No more to parse
+      case TokenType.endOfFile:
+        break;
+
+      // Uncaught token
       default:
-        desc = ' ${t.type.name}';
+        throwOnUnexpectedToken(token);
+    }
+    //traceStack(4);
+  }
+
+  /// Process one or more operations from the stack
+  void processOperations({int limit = 0, bool tryAssign = false, bool processIdentifiers = false}) {
+    // Need at least three tokens on the stack to process it
+    while (stack.length > 2) {
+      if (stack[stack.length - 2].type != TokenType.operator) {
         break;
+      }
+      var b = stack.removeLast();
+      var op = stack.removeLast();
+      var a = stack.removeLast();
+
+      var c = Token();
+      //c.type = a.type;
+      if (op.type == TokenType.operator) {
+        processVariables(a);
+        processVariables(b);
+        switch (op.value as int) {
+          case CharCode.plus:
+            // Object
+            if (a.type == TokenType.object) {
+              if (b.type == TokenType.object) {
+                c.value = ObjectType();
+                c.value.items.addAll(a.value.items);
+                c.value.items.addAll(b.value.items);
+              } else {
+                throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
+              }
+            }
+            // Array
+            else if (a.type == TokenType.array) {
+              c.value = ArrayType(a.value);
+              if (b.type == TokenType.array) {
+                c.value.items.addAll(b.value.items);
+              } else {
+                c.value.items.add(b.value);
+              }
+            } else if (b.type == TokenType.array) {
+              c.value = ArrayType(b.value);
+              c.value.items.insert(0, a.value);
+            }
+            // String
+            else if (a.type != TokenType.number || b.type != TokenType.number) {
+              c.value = a.value.toString() + b.value.toString();
+            }
+            // Number
+            else {
+              c.value = a.value + b.value;
+            }
+            break;
+          case CharCode.minus:
+            // Object
+            if (a.type == TokenType.object) {
+              c.value = ObjectType(a.value);
+              if (b.type == TokenType.object) {
+                (c.value.items as Map).removeWhere((key, value) => (b.value.items as Map).keys.contains(key));
+              } else if (b.type == TokenType.array) {
+                (c.value.items as Map).removeWhere((key, value) => (b.value.items as List).contains(key));
+              } else {
+                (c.value.items as Map).removeWhere((key, value) => b.value == key);
+              }
+            }
+            // Array
+            else if (a.type == TokenType.array) {
+              c.value = ArrayType(a.value);
+              if (b.type == TokenType.array) {
+                (c.value.items as List).removeWhere((item) => (b.value.items as List).contains(item));
+              } else {
+                (c.value.items as List).removeWhere((item) => b.value == item);
+              }
+            }
+            // Number
+            else if (a.type != TokenType.number) {
+              throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
+            } else {
+              c.value = a.value - b.value;
+            }
+
+            break;
+          case CharCode.forwardSlash:
+            c.value = a.value / b.value;
+            break;
+          case CharCode.asterisk:
+            c.value = a.value * b.value;
+            break;
+          case CharCode.hat:
+            c.value = pow(a.value, b.value);
+            break;
+          case CharCode.percent:
+            c.value = a.value % b.value;
+            break;
+          default:
+            throw UnexpectedTokenException('Unknown operator "${String.fromCharCode(op.value)}"', op.line, op.char);
+        }
+      }
+      stack.add(c);
+      limit--;
+      if (limit == 0) break;
+    }
+    if (tryAssign) {
+      assign(processIdentifiers: processIdentifiers);
+    }
+  }
+
+  /// try to assign values to containers in the stack
+  void assign({bool processIdentifiers = false}) {
+    while (stack.length > 1) {
+      var parent = stack[stack.length - 2];
+      if (parent.open) {
+        if (parent.type == TokenType.keyValuePair) {
+          if (isValue() && !lastIsOpen) {
+            final child = stack.removeLast();
+            processVariables(child);
+            parent = stack.removeLast();
+            if (lastTokenType == TokenType.object) {
+              last.value.items[parent.value] = child.value;
+            } else if (lastTokenType == TokenType.function) {
+              last.namedArgs![parent.value] = child.value;
+            } else {
+              throwOnUnexpectedToken(last);
+            }
+            continue;
+          }
+        } else if (parent.type == TokenType.array) {
+          if (isValue() && !lastIsOpen) {
+            final child = stack.removeLast();
+            processVariables(child);
+            parent.value.items.add(child.value);
+            continue;
+          }
+        } else if (parent.type == TokenType.variable || parent.type == TokenType.defaultVariable) {
+          if (isValue() && !lastIsOpen) {
+            final child = stack.removeLast();
+            processVariables(child);
+            parent = stack.removeLast();
+            if (parent.type == TokenType.variable || !variables.containsKey(parent.value)) {
+              variables[parent.value] = child.value;
+            }
+            continue;
+          }
+        } else if (parent.type == TokenType.function) {
+          if (isValue()) {
+            final child = stack.removeLast();
+            if (processIdentifiers && child.type == TokenType.identifier) {
+              processVariables(child);
+            }
+            parent.args!.add(child.value);
+            continue;
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  /// Process stack until an opening bracket is found
+  void processToBracket() {
+    // Otherwise process to opening bracket
+    while (true) {
+      // If next on stack is opening bracket, remove it and exit
+      if (stack.last.type == TokenType.openBracket) {
+        stack.removeLast();
+        assign();
+        break;
+      }
+      // If second on stack is opening bracket, 'process' the value in between
+      if (stack[stack.length - 2].type == TokenType.openBracket) {
+        var t = stack.removeLast();
+        stack.removeLast();
+        stack.add(t);
+        assign();
+        break;
+      }
+      // Otherwise process a single operation
+      processOperations(limit: 1);
+      // Exit if stack is empty
+      if (stack.length < 2) break;
+    }
+    assign();
+  }
+
+  /// Resolve variable value
+  void processVariables(Token token) {
+    if (token.type == TokenType.identifier) {
+      final String key = options.caseInsensitiveBuiltins ? token.value.toLowerCase() : token.value;
+      if (Builtin.variables.containsKey(key)) {
+        token.type = TokenType.unknown;
+        token.value = Builtin.variables[key];
+      } else if (variables.containsKey(token.value)) {
+        token.type = TokenType.unknown;
+        token.value = variables[token.value];
+      } else if (options.errorOnUndefinedVariable) {
+        throw UnhandledVariableException('Unhandled variable "${token.value}"', token.line, token.char);
+      } else {
+        // XXX: This could break all sorts of things
+        token.type = TokenType.unknown;
+        token.value = null;
+      }
+    }
+  }
+
+  /// Check if the token is lower than the one on top of the stack
+  bool lowerOrSame(Token a) {
+    var b = stack[stack.length - 2];
+    return order(a) <= order(b);
+  }
+
+  /// Return the precedence order of an operator
+  int order(Token t) {
+    if (t.type == TokenType.openBracket) {
+      return 1;
+    } else if (t.type == TokenType.operator) {
+      switch (t.value as int) {
+        case CharCode.plus:
+        case CharCode.minus:
+          return 2;
+        case CharCode.asterisk:
+        case CharCode.forwardSlash:
+          return 3;
+        case CharCode.hat:
+        case CharCode.percent:
+          return 4;
+      }
+    }
+    return 0;
+  }
+
+  /// Check if a token on the stack is an operator
+  bool isOperator([int i = -1]) {
+    if (stack.isEmpty) {
+      return false;
+    } else if (i < 0) {
+      return stack[stack.length + i].type == TokenType.operator;
+    } else {
+      return stack[i].type == TokenType.operator;
+    }
+  }
+
+  /// Check if a token on the stack is a value type
+  bool isValue([int i = -1]) {
+    if (stack.isEmpty) {
+      return false;
+    }
+    var t = (i < 0) ? stack[stack.length + i] : stack[i];
+    switch (t.type) {
+      case TokenType.array:
+      case TokenType.boolean:
+      case TokenType.nullValue:
+      case TokenType.number:
+      case TokenType.object:
+      case TokenType.string:
+      case TokenType.identifier:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /// Unexpected token found
+  void throwOnUnexpectedToken(Token t) {
+    var desc = '';
+    if (t.type == TokenType.operator) {
+      desc = ' operator("${String.fromCharCode(t.value)}")';
+    } else if (t.value != null) {
+      desc = ' "${t.value}"';
     }
     throw UnexpectedTokenException('Unexpected ${t.type.name} token$desc', t.line, t.char);
   }
 
-  String next() {
-    char++;
-    return str[pos++];
-  }
-
-  String peek([int offset = 0]) {
-    return str[pos + offset];
-  }
-
-  void rewind([int amount = 1]) {
-    char -= amount;
-    pos -= amount;
+  /// Trace this stack
+  void traceStack([int tab = 0]) {
+    var s = ''.padRight(tab, ' ');
+    print('${s}stack [');
+    for (int i = 0; i < stack.length; i++) {
+      stack[i].trace(tab + 4);
+    }
+    print('$s]');
   }
 }

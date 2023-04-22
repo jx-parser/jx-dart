@@ -26,10 +26,10 @@ import 'package:jx/jx.dart';
 void main() {
   String jx = '''{
     // This is an example jx file
-    $code: 'jx';
+    \$code: 'jx';
     name: code + ' file format (.' + code + ')';
   }''';
-  var parser = JxParser()..options.strict();
+  var parser = JxParser();
   var result = parser.parse(jx);
 
   print(result['name']); // jx file format (.jx)
