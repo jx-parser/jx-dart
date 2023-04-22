@@ -74,6 +74,34 @@ class Builtin {
     'grayscale': Builtin(ArgType.i1, grayscale),
   };
 
+  /// Check that the arguments stored on this token are of the correct type
+  static Builtin? check(String fn, List<dynamic> args) {
+    final builtin = functions[fn];
+    if (builtin == null) return null;
+    if (args.length == builtin.types.length) {
+      for (var i = 0; i < builtin.types.length; i++) {
+        switch (builtin.types[i]) {
+          case ArgType.int:
+            if (args[i] is! int) {
+              return null;
+            }
+            break;
+          case ArgType.number:
+            if ((args[i] is! double) && (args[i] is! int)) {
+              return null;
+            }
+            break;
+          case ArgType.string:
+            if (args[i] is! String) {
+              return null;
+            }
+            break;
+        }
+      }
+    }
+    return builtin;
+  }
+
   /// Math built-ins
   static int floor(double n) {
     return n.floor();

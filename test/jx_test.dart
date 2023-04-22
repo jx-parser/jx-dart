@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('JxParser', () {
-    test('Basic json with object root', () {
+    test('JSON Object', () {
       String jx = '''{
   "name": "jx",
   "year": 2022,
@@ -26,13 +26,13 @@ void main() {
       expect(result['year'], equals(2022));
       expect(result['version'], equals(1.0));
 
-      expect(result['words'] is List, true);
+      expect(result['words'] is ArrayType, true);
       expect(result['words'].length, 2);
 
       expect(result['words'][0], equals('JSON'));
       expect(result['words'][1], equals('extended'));
 
-      expect(result['attributes'] is Map, true);
+      expect(result['attributes'] is ObjectType, true);
       expect(result['attributes'].keys.length, 3);
 
       expect(result['attributes']['extension'], equals('.jx'));
@@ -40,7 +40,7 @@ void main() {
       expect(result['attributes']['null'], equals(null));
     });
 
-    test('Basic json with array root', () {
+    test('JSON Array', () {
       String jx = '''[
   "jx",
   2022,
@@ -58,20 +58,20 @@ void main() {
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
       expect(result.length, equals(5));
 
       expect(result[0], equals('jx'));
       expect(result[1], equals(2022));
       expect(result[2], equals(1.0));
 
-      expect(result[3] is List, true);
+      expect(result[3] is ArrayType, true);
       expect(result[3].length, 2);
 
       expect(result[3][0], equals('JSON'));
       expect(result[3][1], equals('extended'));
 
-      expect(result[4] is Map, true);
+      expect(result[4] is ObjectType, true);
       expect(result[4].keys.length, 3);
 
       expect(result[4]['extension'], equals('.jx'));
@@ -97,7 +97,7 @@ void main() {
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
       var i = 0;
       expect(result[i++], equals(16750848));
@@ -136,13 +136,13 @@ void main() {
       expect(result['year'], equals(2022));
       expect(result['version'], equals(1.0));
 
-      expect(result['words'] is List, true);
+      expect(result['words'] is ArrayType, true);
       expect(result['words'].length, 2);
 
       expect(result['words'][0], equals('JSON'));
       expect(result['words'][1], equals('extended'));
 
-      expect(result['attributes'] is Map, true);
+      expect(result['attributes'] is ObjectType, true);
       expect(result['attributes'].keys.length, 3);
 
       expect(result['attributes']['extension'], equals('.jx'));
@@ -153,37 +153,37 @@ void main() {
     test('Complex unquoted keys', () {
       String jx = '''{
   #name: "jx",
-  y%ear: 2022,
+  year: 2022,
   _version: 1.0,
   words0: [
     "JSON",
     "extended"
   ],
-  attributes.all: {
-    extension[]: ".jx",
-    supported{}: true,
-    0123: null
+  attributes.all: Named{
+    extension: ".jx",
+    supported#: true,
+    0123t: null
   }
 }''';
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
       expect(result['#name'], equals('jx'));
-      expect(result['y%ear'], equals(2022));
+      expect(result['year'], equals(2022));
       expect(result['_version'], equals(1.0));
 
-      expect(result['words0'] is List, true);
+      expect(result['words0'] is ArrayType, true);
       expect(result['words0'].length, 2);
 
       expect(result['words0'][0], equals('JSON'));
       expect(result['words0'][1], equals('extended'));
 
-      expect(result['attributes.all'] is Map, true);
+      expect(result['attributes.all'] is ObjectType, true);
       expect(result['attributes.all'].keys.length, 3);
 
-      expect(result['attributes.all']['extension[]'], equals('.jx'));
-      expect(result['attributes.all']['supported{}'], equals(true));
-      expect(result['attributes.all']['0123'], equals(null));
+      expect(result['attributes.all']['extension'], equals('.jx'));
+      expect(result['attributes.all']['supported#'], equals(true));
+      expect(result['attributes.all']['0123t'], equals(null));
     });
 
     test('Comments', () {
@@ -211,18 +211,18 @@ void main() {
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
       expect(result.length, 3);
 
       expect(result[0], equals('A'));
       expect(result[1], equals('B'));
 
-      expect(result[2] is Map, true);
+      expect(result[2] is ObjectType, true);
       expect(result[2]['C'], equals('C'));
       expect(result[2]['D'], equals('D'));
     });
 
-    test('Seperators', () {
+    test('Separators', () {
       String jx = '''[
   'a', // Can be comma
   'b'; // Can be semicolon
@@ -231,7 +231,7 @@ void main() {
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
       expect(result.length, 3);
 
       expect(result[0], equals('a'));
@@ -254,7 +254,7 @@ void main() {
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
       var i = 0;
       expect(result[i++], equals('Hello'));
@@ -280,13 +280,13 @@ World!",
         ..options.trimLongStrings = false;
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
       expect(result[0], equals('Hello, \nWorld!'));
       expect(result[1], equals('Hello, \nWorld!'));
     });
 
-    test('Mult-line trimmed strings', () {
+    test('Multi-line trimmed strings', () {
       String jx = '''[
   '
 Hello, 
@@ -307,7 +307,7 @@ World!
         ..options.trimLongStrings = true;
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
       expect(result[0], equals('Hello, \nWorld!'));
       expect(result[1], equals('Hello, \nWorld!'));
@@ -321,7 +321,7 @@ World!
   ['a', 'b'] + 'c',
   ['a', 'b'] + 'c' + 'd',
   'a' + 'b' + ['c','d'],
-  'a' + ('b' + ['c','d']),
+  'z' + ('b' + ['c','d']),
   [1, 2] + 3,
   [true, false] + true,
   10 + ['a', 1.23] + true + 'b',
@@ -340,26 +340,27 @@ World!
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
-      expect(result[0], equals(['a', 'b', 'c', 'd']));
-      expect(result[1], equals(['a', 'b', 'c']));
-      expect(result[2], equals(['a', 'b', 'c', 'd']));
-      expect(result[3], equals(['ab', 'c', 'd']));
-      expect(result[4], equals(['a', 'b', 'c', 'd']));
-      expect(result[5], equals([1, 2, 3]));
-      expect(result[6], equals([true, false, true]));
-      expect(result[7], equals([10, 'a', 1.23, true, 'b']));
+      var i = 0;
+      expect(result[i++].items, equals(['a', 'b', 'c', 'd']));
+      expect(result[i++].items, equals(['a', 'b', 'c']));
+      expect(result[i++].items, equals(['a', 'b', 'c', 'd']));
+      expect(result[i++].items, equals(['ab', 'c', 'd']));
+      expect(result[i++].items, equals(['z', 'b', 'c', 'd']));
+      expect(result[i++].items, equals([1, 2, 3]));
+      expect(result[i++].items, equals([true, false, true]));
+      expect(result[i++].items, equals([10, 'a', 1.23, true, 'b']));
 
-      expect(result[8], equals(['a', 'c']));
-      expect(result[9], equals(['a', 'c']));
-      expect(result[10], equals(['a', 'c']));
-      expect(result[11], equals(['a']));
-      expect(result[12], equals(['a', 'b', 'c']));
-      expect(result[13], equals(['a', 'a', 'c']));
-      expect(result[14], equals([1, 3]));
-      expect(result[15], equals([1, 2, 3]));
-      expect(result[16], equals([false, false]));
+      expect(result[i++].items, equals(['a', 'c']));
+      expect(result[i++].items, equals(['a', 'c']));
+      expect(result[i++].items, equals(['a', 'c']));
+      expect(result[i++].items, equals(['a']));
+      expect(result[i++].items, equals(['a', 'b', 'c']));
+      expect(result[i++].items, equals(['a', 'a', 'c']));
+      expect(result[i++].items, equals([1, 3]));
+      expect(result[i++].items, equals([1, 2, 3]));
+      expect(result[i++].items, equals([false, false]));
     });
 
     test('Objects', () {
@@ -376,13 +377,14 @@ World!
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result is List, true);
+      expect(result is ArrayType, true);
 
-      expect(result[0], equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
-      expect(result[1], equals({'a': 1, 'b': 2}));
-      expect(result[2], equals({'a': 1, 'b': 2}));
-      expect(result[3], equals({'a': 1, 'b': 2}));
-      expect(result[4], equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
+      var i = 0;
+      expect(result[i++].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
+      expect(result[i++].items, equals({'a': 1, 'b': 2}));
+      expect(result[i++].items, equals({'a': 1, 'b': 2}));
+      expect(result[i++].items, equals({'a': 1, 'b': 2}));
+      expect(result[i++].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
     });
 
     test('Value output', () {
@@ -478,15 +480,18 @@ World!
 
     test('Custom functions', () {
       String jx = '''{
-  name: getName(),
-  years: getAge(),
-  age: getAge('years'),
+  name: getName();
+  years: getAge();
+  age: getAge('years');
+  array: makeArray(a:1, b:2, c:3);
+  object: makeObject(a:1, b:2, c:3);
+  args: checkArgs('a', d:1, 'b', e:2, f:3, 'c', g:4);
 }''';
 
       var parser = JxParser()
         ..options.strict()
         // Provide custom function handler
-        ..onFunction = (String fn, List<dynamic> args) {
+        ..onFunction = (String fn, List<dynamic> args, Map<String, dynamic> named) {
           switch (fn) {
             case 'getName':
               return 'JSON extended';
@@ -495,6 +500,17 @@ World!
                 return 30;
               }
               return '30 ${args[0]}';
+            case 'makeArray':
+              List<dynamic> vals = [];
+              for (final v in named.values) {
+                vals.add(v);
+              }
+              return vals;
+            case 'makeObject':
+              return named;
+            case 'checkArgs':
+              var a = [...args, ...named.keys];
+              return a.join(' ');
             default:
               return null;
           }
@@ -504,6 +520,11 @@ World!
       expect(result['name'], equals('JSON extended'));
       expect(result['years'], equals(30));
       expect(result['age'], equals('30 years'));
+      expect(result['array'] is ArrayType, true);
+      expect(result['array'].items, equals([1, 2, 3]));
+      expect(result['object'] is ObjectType, true);
+      expect(result['object'].items, equals({'a': 1, 'b': 2, 'c': 3}));
+      expect(result['args'], equals('a b c d e f g'));
     });
 
     test('Strict mode unhandled function', () {
@@ -521,7 +542,7 @@ World!
       var parser = JxParser()..options.relaxed();
       var result = parser.parse(jx);
 
-      expect(result is Map, true);
+      expect(result is ObjectType, true);
       expect(result.keys.contains('foo'), true);
       expect(result['foo'], equals(null));
     });
@@ -551,29 +572,30 @@ World!
       var parser = JxParser()..options.strict();
       var result = parser.parse(jx);
 
-      expect(result[0], equals(true));
-      expect(result[1], equals(true));
-      expect(result[2], equals(true));
+      var i = 0;
+      expect(result[i++], equals(true));
+      expect(result[i++], equals(true));
+      expect(result[i++], equals(true));
 
-      expect(result[3], equals(false));
-      expect(result[4], equals(false));
-      expect(result[5], equals(false));
+      expect(result[i++], equals(false));
+      expect(result[i++], equals(false));
+      expect(result[i++], equals(false));
 
-      expect(result[6], equals(null));
-      expect(result[7], equals(null));
-      expect(result[8], equals(null));
+      expect(result[i++], equals(null));
+      expect(result[i++], equals(null));
+      expect(result[i++], equals(null));
 
-      expect(result[9], closeTo(3.14159, 0.00001));
-      expect(result[10], closeTo(3.14159, 0.00001));
-      expect(result[11], closeTo(3.14159, 0.00001));
+      expect(result[i++], closeTo(3.14159, 0.00001));
+      expect(result[i++], closeTo(3.14159, 0.00001));
+      expect(result[i++], closeTo(3.14159, 0.00001));
 
-      expect(result[12], closeTo(1 / 3.14159, 0.00001));
-      expect(result[13], closeTo(1 / 3.14159, 0.00001));
-      expect(result[14], closeTo(1 / 3.14159, 0.00001));
+      expect(result[i++], closeTo(1 / 3.14159, 0.00001));
+      expect(result[i++], closeTo(1 / 3.14159, 0.00001));
+      expect(result[i++], closeTo(1 / 3.14159, 0.00001));
 
-      expect(result[15], closeTo(3.14159 / 2, 0.00001));
-      expect(result[16], closeTo(3.14159 / 2, 0.00001));
-      expect(result[17], closeTo(3.14159 / 2, 0.00001));
+      expect(result[i++], closeTo(3.14159 / 2, 0.00001));
+      expect(result[i++], closeTo(3.14159 / 2, 0.00001));
+      expect(result[i++], closeTo(3.14159 / 2, 0.00001));
     });
 
     test('Inline variables', () {
@@ -620,7 +642,7 @@ World!
     test('Variable names', () {
       String jx = '''{
   \$first: 1,
-  \$-second: 1,
+  \$second: 1,
   \$_third: 1,
   \$four_th: 1,
   \$FIFTH5: 1,
@@ -683,7 +705,7 @@ World!
       var parser = JxParser()..options.relaxed();
       var result = parser.parse(jx);
 
-      expect(result is Map, true);
+      expect(result is ObjectType, true);
       expect(result.keys.contains('foo'), true);
       expect(result['foo'], equals(null));
     });

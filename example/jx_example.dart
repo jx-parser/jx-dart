@@ -1,10 +1,14 @@
 import 'package:jx/jx.dart';
 
 void main() {
-  String jx = '{ foo: "bar"; }';
-
-  var parser = JxParser()..options.relaxed();
+  String jx = '''{
+    // This is an example jx file
+    \$code: 'jx';
+    name: code + ' file format (.' + code + ')';
+  }''';
+  var parser = JxParser();
   var result = parser.parse(jx);
 
-  print(result);
+  print(result['name']); // jx file format (.jx)
+  print(result.variables['code']); // jx
 }
