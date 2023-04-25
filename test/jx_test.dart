@@ -491,7 +491,8 @@ World!
       var parser = JxParser()
         ..options.strict()
         // Provide custom function handler
-        ..onFunction = (String fn, List<dynamic> args, Map<String, dynamic> named) {
+        ..onFunction =
+            (String fn, List<dynamic> args, Map<String, dynamic> named) {
           switch (fn) {
             case 'getName':
               return 'JSON extended';
@@ -654,7 +655,8 @@ World!
       parser.parse(jx);
 
       for (var k in parser.variables.keys) {
-        expect(parser.variables[k], equals(1), reason: 'The variable name "$k" is valid');
+        expect(parser.variables[k], equals(1),
+            reason: 'The variable name "$k" is valid');
       }
     });
 
