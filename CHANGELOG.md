@@ -1,3 +1,10 @@
+## 1.0.3
+
+_April 25, 2023_
+
+- Avoid possible exceptions during number parsing
+- Dart format all files
+
 ## 1.0.2
 
 _April 4, 2023_

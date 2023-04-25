@@ -181,9 +181,15 @@ class Builtin {
 
   static int tint(int c, int t, double a) {
     a = clamp(a);
-    int A = (lerp(((c >> 24) & 0xff).toDouble(), ((t >> 24) & 0xff).toDouble(), a)).floor();
-    int R = (lerp(((c >> 16) & 0xff).toDouble(), ((t >> 16) & 0xff).toDouble(), a)).floor();
-    int G = (lerp(((c >> 8) & 0xff).toDouble(), ((t >> 8) & 0xff).toDouble(), a)).floor();
+    int A =
+        (lerp(((c >> 24) & 0xff).toDouble(), ((t >> 24) & 0xff).toDouble(), a))
+            .floor();
+    int R =
+        (lerp(((c >> 16) & 0xff).toDouble(), ((t >> 16) & 0xff).toDouble(), a))
+            .floor();
+    int G =
+        (lerp(((c >> 8) & 0xff).toDouble(), ((t >> 8) & 0xff).toDouble(), a))
+            .floor();
     int B = (lerp((c & 0xff).toDouble(), (t & 0xff).toDouble(), a)).floor();
     return fastColorFromRGBA(R, G, B, A);
   }

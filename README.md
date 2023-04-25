@@ -12,6 +12,7 @@ jx (short for JSON eXtended, file extension `.jx`) is a file format that extends
 - Color support and manipulation
 
 > **[Example jx file](https://github.com/jx-parser/jx/blob/master/examples/example.jx)**
+
 > **[Overview of the jx specification](https://github.com/jx-parser/jx#readme)**
 
 ## Getting started

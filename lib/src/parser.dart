@@ -83,7 +83,9 @@ class CharCode {
 
   /// Valid char for keys, variable names and function names
   static bool validIdentifier(int c) {
-    if (c == CharCode.hash || c == CharCode.underscore || c == CharCode.period) {
+    if (c == CharCode.hash ||
+        c == CharCode.underscore ||
+        c == CharCode.period) {
       return true;
     } else if (c > 47 && c < 58) {
       // 0..9
@@ -369,7 +371,8 @@ class JxParser {
                 if (n == CharCode.newline) {
                   line++;
                   char = 1;
-                } else if ((n == CharCode.forwardSlash) && peek(-2) == CharCode.asterisk) {
+                } else if ((n == CharCode.forwardSlash) &&
+                    peek(-2) == CharCode.asterisk) {
                   break;
                 }
               }
@@ -504,14 +507,19 @@ class JxParser {
       return token;
     }
     // Token is a variable or default variable
-    else if (token.type == TokenType.variable || token.type == TokenType.defaultVariable) {
+    else if (token.type == TokenType.variable ||
+        token.type == TokenType.defaultVariable) {
       if (string!.isEmpty) {
-        throw IllegalTokenName('Variable must have a name', token.line, token.char);
+        throw IllegalTokenName(
+            'Variable must have a name', token.line, token.char);
       }
       token.value = string.toString();
-      final String key = options.caseInsensitiveBuiltins ? token.value.toLowerCase() : token.value;
+      final String key = options.caseInsensitiveBuiltins
+          ? token.value.toLowerCase()
+          : token.value;
       if (Builtin.variables.containsKey(key)) {
-        throw IllegalTokenName('Variable name "${token.value}" not allowed', token.line, token.char);
+        throw IllegalTokenName('Variable name "${token.value}" not allowed',
+            token.line, token.char);
       }
     }
     // Token is a string
@@ -568,17 +576,22 @@ class JxParser {
         for (final t in builtin!.types) {
           typeNames.add(t.name);
         }
-        throw FunctionException('Incorrect args for "$fn". Expect (${typeNames.join(', ')})', token.line, token.char);
+        throw FunctionException(
+            'Incorrect args for "$fn". Expect (${typeNames.join(', ')})',
+            token.line,
+            token.char);
       }
     } else {
       if (onFunction == null) {
         if (options.errorOnUnhandledFunction) {
-          throw UnhandledFunctionException('Unknown function "$fn"', token.line, token.char);
+          throw UnhandledFunctionException(
+              'Unknown function "$fn"', token.line, token.char);
         } else {
           return Token()..value = null;
         }
       }
-      return Token()..value = onFunction?.call(fn, token.args!, token.namedArgs!);
+      return Token()
+        ..value = onFunction?.call(fn, token.args!, token.namedArgs!);
     }
   }
 
@@ -587,9 +600,11 @@ class JxParser {
     // Parse # colors
     if (str[0] == '#') {
       if (str.length == 4) {
-        return int.parse('${str[1]}${str[1]}${str[2]}${str[2]}${str[3]}${str[3]}', radix: 16);
+        return int.parse(
+            '${str[1]}${str[1]}${str[2]}${str[2]}${str[3]}${str[3]}',
+            radix: 16);
       } else if (str.length == 7) {
-        return int.parse(str.substring(1), radix: 16);
+        return int.tryParse(str.substring(1), radix: 16);
       } else {
         return null;
       }
@@ -598,11 +613,11 @@ class JxParser {
     else if (str[0] == '0' && str.length > 1) {
       // Parse hex format
       if (str[1] == 'x' || str[1] == 'X') {
-        return int.parse(str.substring(2), radix: 16);
+        return int.tryParse(str.substring(2), radix: 16);
       }
       // Parse binary format
       if (str[1] == 'b' || str[1] == 'B') {
-        return int.parse(str.substring(2), radix: 2);
+        return int.tryParse(str.substring(2), radix: 2);
       }
     }
     // Parse float or int
@@ -678,7 +693,8 @@ class JxParser {
       // Open bracket
       case TokenType.openBracket:
         // If previous item is identifier, this is a function
-        if (lastTokenType == TokenType.identifier || lastTokenType == TokenType.string) {
+        if (lastTokenType == TokenType.identifier ||
+            lastTokenType == TokenType.string) {
           stack.last.type = TokenType.function;
           stack.last.open = true;
           stack.last.args = [];
@@ -695,18 +711,22 @@ class JxParser {
       case TokenType.assignment:
         // Check if last is operator
         if (isOperator()) {
-          throw UnexpectedTokenException('Unexpected token after operator', token.line, token.char);
+          throw UnexpectedTokenException(
+              'Unexpected token after operator', token.line, token.char);
         }
         // Process the stack
         processOperations();
         // Check if last is identifier or string
-        if (lastTokenType == TokenType.identifier || lastTokenType == TokenType.string) {
+        if (lastTokenType == TokenType.identifier ||
+            lastTokenType == TokenType.string) {
           stack.last.type = TokenType.keyValuePair;
           stack.last.value = stack.last.value;
           stack.last.open = true;
         }
         // Check if last is variable
-        else if ((lastTokenType != TokenType.variable && lastTokenType != TokenType.defaultVariable) || !lastIsOpen) {
+        else if ((lastTokenType != TokenType.variable &&
+                lastTokenType != TokenType.defaultVariable) ||
+            !lastIsOpen) {
           throwOnUnexpectedToken(token);
         }
         break;
@@ -792,7 +812,10 @@ class JxParser {
   }
 
   /// Process one or more operations from the stack
-  void processOperations({int limit = 0, bool tryAssign = false, bool processIdentifiers = false}) {
+  void processOperations(
+      {int limit = 0,
+      bool tryAssign = false,
+      bool processIdentifiers = false}) {
     // Need at least three tokens on the stack to process it
     while (stack.length > 2) {
       if (stack[stack.length - 2].type != TokenType.operator) {
@@ -816,7 +839,8 @@ class JxParser {
                 c.value.items.addAll(a.value.items);
                 c.value.items.addAll(b.value.items);
               } else {
-                throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
+                throw UnexpectedTokenException(
+                    'Unexpected operator "${op.value}"', op.line, op.char);
               }
             }
             // Array
@@ -845,25 +869,30 @@ class JxParser {
             if (a.type == TokenType.object) {
               c.value = ObjectType(a.value);
               if (b.type == TokenType.object) {
-                (c.value.items as Map).removeWhere((key, value) => (b.value.items as Map).keys.contains(key));
+                (c.value.items as Map).removeWhere(
+                    (key, value) => (b.value.items as Map).keys.contains(key));
               } else if (b.type == TokenType.array) {
-                (c.value.items as Map).removeWhere((key, value) => (b.value.items as List).contains(key));
+                (c.value.items as Map).removeWhere(
+                    (key, value) => (b.value.items as List).contains(key));
               } else {
-                (c.value.items as Map).removeWhere((key, value) => b.value == key);
+                (c.value.items as Map)
+                    .removeWhere((key, value) => b.value == key);
               }
             }
             // Array
             else if (a.type == TokenType.array) {
               c.value = ArrayType(a.value);
               if (b.type == TokenType.array) {
-                (c.value.items as List).removeWhere((item) => (b.value.items as List).contains(item));
+                (c.value.items as List).removeWhere(
+                    (item) => (b.value.items as List).contains(item));
               } else {
                 (c.value.items as List).removeWhere((item) => b.value == item);
               }
             }
             // Number
             else if (a.type != TokenType.number) {
-              throw UnexpectedTokenException('Unexpected operator "${op.value}"', op.line, op.char);
+              throw UnexpectedTokenException(
+                  'Unexpected operator "${op.value}"', op.line, op.char);
             } else {
               c.value = a.value - b.value;
             }
@@ -882,7 +911,10 @@ class JxParser {
             c.value = a.value % b.value;
             break;
           default:
-            throw UnexpectedTokenException('Unknown operator "${String.fromCharCode(op.value)}"', op.line, op.char);
+            throw UnexpectedTokenException(
+                'Unknown operator "${String.fromCharCode(op.value)}"',
+                op.line,
+                op.char);
         }
       }
       stack.add(c);
@@ -920,12 +952,14 @@ class JxParser {
             parent.value.items.add(child.value);
             continue;
           }
-        } else if (parent.type == TokenType.variable || parent.type == TokenType.defaultVariable) {
+        } else if (parent.type == TokenType.variable ||
+            parent.type == TokenType.defaultVariable) {
           if (isValue() && !lastIsOpen) {
             final child = stack.removeLast();
             processVariables(child);
             parent = stack.removeLast();
-            if (parent.type == TokenType.variable || !variables.containsKey(parent.value)) {
+            if (parent.type == TokenType.variable ||
+                !variables.containsKey(parent.value)) {
               variables[parent.value] = child.value;
             }
             continue;
@@ -974,7 +1008,9 @@ class JxParser {
   /// Resolve variable value
   void processVariables(Token token) {
     if (token.type == TokenType.identifier) {
-      final String key = options.caseInsensitiveBuiltins ? token.value.toLowerCase() : token.value;
+      final String key = options.caseInsensitiveBuiltins
+          ? token.value.toLowerCase()
+          : token.value;
       if (Builtin.variables.containsKey(key)) {
         token.type = TokenType.unknown;
         token.value = Builtin.variables[key];
@@ -982,7 +1018,8 @@ class JxParser {
         token.type = TokenType.unknown;
         token.value = variables[token.value];
       } else if (options.errorOnUndefinedVariable) {
-        throw UnhandledVariableException('Unhandled variable "${token.value}"', token.line, token.char);
+        throw UnhandledVariableException(
+            'Unhandled variable "${token.value}"', token.line, token.char);
       } else {
         // XXX: This could break all sorts of things
         token.type = TokenType.unknown;
@@ -1056,7 +1093,8 @@ class JxParser {
     } else if (t.value != null) {
       desc = ' "${t.value}"';
     }
-    throw UnexpectedTokenException('Unexpected ${t.type.name} token$desc', t.line, t.char);
+    throw UnexpectedTokenException(
+        'Unexpected ${t.type.name} token$desc', t.line, t.char);
   }
 
   /// Trace this stack

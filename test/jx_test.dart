@@ -642,19 +642,31 @@ World!
     test('Variable names', () {
       String jx = '''{
   \$first: 1,
-  \$second: 1,
+  \$#second: 1,
   \$_third: 1,
   \$four_th: 1,
   \$FIFTH5: 1,
   \$6th: 1,
   \$seven#th: 1,
+  check: [
+    first,
+    #second,
+    _third,
+    four_th,
+    FIFTH5,
+    6th,
+    seven#th
+  ]
 }''';
 
       var parser = JxParser()..options.strict();
-      parser.parse(jx);
+      final result = parser.parse(jx);
 
       for (var k in parser.variables.keys) {
         expect(parser.variables[k], equals(1), reason: 'The variable name "$k" is valid');
+      }
+      for (var i = 0; i < result['check'].length; i++) {
+        expect(result['check'][i], equals(1), reason: 'The item at index "$i" is valid');
       }
     });
 
