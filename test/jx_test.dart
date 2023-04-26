@@ -486,12 +486,14 @@ World!
   array: makeArray(a:1, b:2, c:3);
   object: makeObject(a:1, b:2, c:3);
   args: checkArgs('a', d:1, 'b', e:2, f:3, 'c', g:4);
+  addObjects: makeObject(a:1, b:2) + makeObject(c:3, d:4);
 }''';
 
       var parser = JxParser()
         ..options.strict()
         // Provide custom function handler
-        ..onFunction = (String fn, List<dynamic> args, Map<String, dynamic> named) {
+        ..onFunction =
+            (String fn, List<dynamic> args, Map<String, dynamic> named) {
           switch (fn) {
             case 'getName':
               return 'JSON extended';
@@ -525,6 +527,9 @@ World!
       expect(result['object'] is ObjectType, true);
       expect(result['object'].items, equals({'a': 1, 'b': 2, 'c': 3}));
       expect(result['args'], equals('a b c d e f g'));
+      expect(result['addObjects'] is ObjectType, true);
+      expect(
+          result['addObjects'].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
     });
 
     test('Strict mode unhandled function', () {
@@ -663,10 +668,12 @@ World!
       final result = parser.parse(jx);
 
       for (var k in parser.variables.keys) {
-        expect(parser.variables[k], equals(1), reason: 'The variable name "$k" is valid');
+        expect(parser.variables[k], equals(1),
+            reason: 'The variable name "$k" is valid');
       }
       for (var i = 0; i < result['check'].length; i++) {
-        expect(result['check'][i], equals(1), reason: 'The item at index "$i" is valid');
+        expect(result['check'][i], equals(1),
+            reason: 'The item at index "$i" is valid');
       }
     });
 
@@ -720,6 +727,22 @@ World!
       expect(result is ObjectType, true);
       expect(result.keys.contains('foo'), true);
       expect(result['foo'], equals(null));
+    });
+
+    test('Nested brackets', () {
+      String jx = '''{
+        a: (3 * (2 + 5));
+        b: (3 * (7 + max(4, 3 + 2)));
+        c: min((9/(1+2)), max(3, 4) + 1);
+      }''';
+
+      var parser = JxParser()..options.relaxed();
+      var result = parser.parse(jx);
+
+      expect(result is ObjectType, true);
+      expect(result['a'], equals(21));
+      expect(result['b'], equals(36));
+      expect(result['c'], equals(3));
     });
   });
 }

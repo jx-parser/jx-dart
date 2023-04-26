@@ -292,7 +292,6 @@ class Token {
 /// the onFunction callback to support custom functionality.
 class JxParser {
   List<Token> stack = [];
-  int nested = 0;
   String str = '';
   int pos = 0;
   int line = 1;
@@ -492,7 +491,8 @@ class JxParser {
       // Unquoted string
       else if (CharCode.validIdentifier(c)) {
         string.writeCharCode(c);
-      } else if (c == CharCode.plus && peek(-2) == CharCode.E) {
+      } else if (c == CharCode.plus &&
+          (peek(-2) == CharCode.E || peek(-2) == CharCode.e)) {
         string.writeCharCode(c);
       }
 
@@ -704,7 +704,6 @@ class JxParser {
         }
         // Otherwise it's a bracket in an equation
         else {
-          nested++;
           stack.add(token);
         }
         break;
@@ -777,16 +776,27 @@ class JxParser {
 
       // Pushing object end
       case TokenType.closeBracket:
-        // If there are opening brackets, process the stack to the opening bracket
-        if (nested > 0) {
-          processToBracket();
-        } else {
-          processOperations(tryAssign: true);
-          if (lastTokenType != TokenType.function) {
-            throwOnUnexpectedToken(token);
+        // Process backwards to opening bracket (including function)
+        while (true) {
+          if (lastTokenType == TokenType.function) {
+            stack.add(processFunction(stack.removeLast()));
+            processOperations();
+            break;
+          } else if (stack.last.type == TokenType.openBracket) {
+            stack.removeLast();
+            assign();
+            break;
           }
-          stack.add(processFunction(stack.removeLast()));
-          processOperations(tryAssign: true);
+          // If second on stack is opening bracket, 'process' the value in between
+          else if (stack[stack.length - 2].type == TokenType.openBracket) {
+            var t = stack.removeLast();
+            stack.removeLast();
+            stack.add(t);
+            assign();
+            break;
+          } else {
+            processOperations(tryAssign: true);
+          }
         }
         break;
 
@@ -842,7 +852,9 @@ class JxParser {
                 c.value.items.addAll(b.value.items);
               } else {
                 throw UnexpectedTokenException(
-                    'Unexpected operator "${op.value}"', op.line, op.char);
+                    'Unexpected operator "${String.fromCharCode(op.value)}"',
+                    op.line,
+                    op.char);
               }
             }
             // Array
@@ -894,7 +906,9 @@ class JxParser {
             // Number
             else if (a.type != TokenType.number) {
               throw UnexpectedTokenException(
-                  'Unexpected operator "${op.value}"', op.line, op.char);
+                  'Unexpected operator "${String.fromCharCode(op.value)}"',
+                  op.line,
+                  op.char);
             } else {
               c.value = a.value - b.value;
             }
@@ -979,32 +993,6 @@ class JxParser {
       }
       break;
     }
-  }
-
-  /// Process stack until an opening bracket is found
-  void processToBracket() {
-    // Otherwise process to opening bracket
-    while (true) {
-      // If next on stack is opening bracket, remove it and exit
-      if (stack.last.type == TokenType.openBracket) {
-        stack.removeLast();
-        assign();
-        break;
-      }
-      // If second on stack is opening bracket, 'process' the value in between
-      if (stack[stack.length - 2].type == TokenType.openBracket) {
-        var t = stack.removeLast();
-        stack.removeLast();
-        stack.add(t);
-        assign();
-        break;
-      }
-      // Otherwise process a single operation
-      processOperations(limit: 1);
-      // Exit if stack is empty
-      if (stack.length < 2) break;
-    }
-    assign();
   }
 
   /// Resolve variable value
