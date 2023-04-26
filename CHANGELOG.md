@@ -1,3 +1,9 @@
+## 1.0.4
+
+_April 26, 2023_
+
+- Add array assignment operators to ArrayType and ObjectType
+
 ## 1.0.3
 
 _April 25, 2023_

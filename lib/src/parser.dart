@@ -115,6 +115,7 @@ class ArrayType {
   // Wrapper methods
   int get length => items.length;
   dynamic operator [](int index) => items[index];
+  operator []=(int index, dynamic value) => items[index] = value;
   @override
   String toString() {
     return type + items.toString();
@@ -135,6 +136,7 @@ class ObjectType {
   // Wrapper methods
   int get length => items.length;
   dynamic operator [](String key) => items[key];
+  operator []=(String key, dynamic value) => items[key] = value;
   Iterable<String> get keys => items.keys;
   Iterable<dynamic> get values => items.values;
   @override

@@ -1,10 +1,4 @@
 {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "Dart-Code.flutter",
-    "dart.lineLength": 120,
-    "[dart]": {
-        "editor.rulers": [
-            120
-        ],
-    }
+    "editor.defaultFormatter": "Dart-Code.flutter"
 }
