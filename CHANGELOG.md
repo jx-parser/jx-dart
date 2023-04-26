@@ -1,3 +1,10 @@
+## 1.0.5
+
+_April 26, 2023_
+
+- Fix potential infinite loop
+- Retain type on concatenating typed objects and arrays
+
 ## 1.0.4
 
 _April 26, 2023_

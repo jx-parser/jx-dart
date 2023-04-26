@@ -318,6 +318,7 @@ World!
       String jx = '''[
   // Adding to arrays
   ['a', 'b'] + ['c', 'd'],
+  A['a', 'b'] + B['c', 'd'],
   ['a', 'b'] + 'c',
   ['a', 'b'] + 'c' + 'd',
   'a' + 'b' + ['c','d'],
@@ -328,6 +329,7 @@ World!
 
   // Removing from arrays
   ['a', 'b', 'c'] - ['b'],
+  A['a', 'b', 'c'] - B['b'],
   ['a', 'b', 'c'] - ['b', 'd'],
   ['a', 'b', 'c'] - 'b',
   ['a', 'b', 'c'] - 'b' - 'c',
@@ -344,6 +346,8 @@ World!
 
       var i = 0;
       expect(result[i++].items, equals(['a', 'b', 'c', 'd']));
+      expect(result[i].type, equals('A'));
+      expect(result[i++].items, equals(['a', 'b', 'c', 'd']));
       expect(result[i++].items, equals(['a', 'b', 'c']));
       expect(result[i++].items, equals(['a', 'b', 'c', 'd']));
       expect(result[i++].items, equals(['ab', 'c', 'd']));
@@ -352,6 +356,8 @@ World!
       expect(result[i++].items, equals([true, false, true]));
       expect(result[i++].items, equals([10, 'a', 1.23, true, 'b']));
 
+      expect(result[i++].items, equals(['a', 'c']));
+      expect(result[i].type, equals('A'));
       expect(result[i++].items, equals(['a', 'c']));
       expect(result[i++].items, equals(['a', 'c']));
       expect(result[i++].items, equals(['a', 'c']));
@@ -367,6 +373,9 @@ World!
       String jx = '''[
   // Concatenating objects
   {a:1, b:2} + {c:3, d:4},
+  MyType{a:1, b:2} + {c:3, d:4},
+  {a:1, b:2} + MyType{c:3, d:4},
+  A{a:1} + B{b:2},
 
   // Removing from objects
   {a:1, b:2, c:3, d:4} - {c:0, d:0},
@@ -381,6 +390,12 @@ World!
 
       var i = 0;
       expect(result[i++].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
+      expect(result[i].type, equals('MyType'));
+      expect(result[i++].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
+      expect(result[i].type, equals(''));
+      expect(result[i++].items, equals({'a': 1, 'b': 2, 'c': 3, 'd': 4}));
+      expect(result[i].type, equals('A'));
+      expect(result[i++].items, equals({'a': 1, 'b': 2}));
       expect(result[i++].items, equals({'a': 1, 'b': 2}));
       expect(result[i++].items, equals({'a': 1, 'b': 2}));
       expect(result[i++].items, equals({'a': 1, 'b': 2}));

@@ -108,6 +108,7 @@ class ArrayType {
 
   ArrayType([ArrayType? from]) {
     if (from != null) {
+      type = from.type;
       items.addAll(from.items);
     }
   }
@@ -129,6 +130,7 @@ class ObjectType {
 
   ObjectType([ObjectType? from]) {
     if (from != null) {
+      type = from.type;
       items.addAll(from.items);
     }
   }
@@ -777,6 +779,8 @@ class JxParser {
       // Pushing object end
       case TokenType.closeBracket:
         // Process backwards to opening bracket (including function)
+        int i = 0;
+        int stackLen = 0;
         while (true) {
           if (lastTokenType == TokenType.function) {
             stack.add(processFunction(stack.removeLast()));
@@ -786,16 +790,21 @@ class JxParser {
             stack.removeLast();
             assign();
             break;
-          }
-          // If second on stack is opening bracket, 'process' the value in between
-          else if (stack[stack.length - 2].type == TokenType.openBracket) {
+          } else if (stack[stack.length - 2].type == TokenType.openBracket) {
             var t = stack.removeLast();
             stack.removeLast();
             stack.add(t);
             assign();
             break;
+          } else if (stack.length == 1) {
+            break;
           } else {
             processOperations(tryAssign: true);
+            if (stackLen > 0 && stack.length == stackLen) {
+              throw UnexpectedTokenException(
+                  'Error processing bracket', token.line, token.char);
+            }
+            stackLen = stack.length;
           }
         }
         break;
@@ -847,8 +856,7 @@ class JxParser {
             // Object
             if (a.type == TokenType.object) {
               if (b.type == TokenType.object) {
-                c.value = ObjectType();
-                c.value.items.addAll(a.value.items);
+                c.value = ObjectType(a.value);
                 c.value.items.addAll(b.value.items);
               } else {
                 throw UnexpectedTokenException(
