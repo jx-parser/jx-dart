@@ -12,36 +12,29 @@ class JxException implements Exception {
 }
 
 class UnexpectedTokenException extends JxException {
-  UnexpectedTokenException(String message, int line, int char)
-      : super(message, line, char);
+  UnexpectedTokenException(super.message, super.line, super.char);
 }
 
 class UnhandledFunctionException extends JxException {
-  UnhandledFunctionException(String message, int line, int char)
-      : super(message, line, char);
+  UnhandledFunctionException(super.message, super.line, super.char);
 }
 
 class FunctionException extends JxException {
-  FunctionException(String message, int line, int char)
-      : super(message, line, char);
+  FunctionException(super.message, super.line, super.char);
 }
 
 class VariableException extends JxException {
-  VariableException(String message, int line, int char)
-      : super(message, line, char);
+  VariableException(super.message, super.line, super.char);
 }
 
 class UnhandledVariableException extends JxException {
-  UnhandledVariableException(String message, int line, int char)
-      : super(message, line, char);
+  UnhandledVariableException(super.message, super.line, super.char);
 }
 
 class UnexpectedEndOfFileException extends JxException {
-  UnexpectedEndOfFileException(String message, int line, int char)
-      : super(message, line, char);
+  UnexpectedEndOfFileException(super.message, super.line, super.char);
 }
 
 class IllegalTokenName extends JxException {
-  IllegalTokenName(String message, int line, int char)
-      : super(message, line, char);
+  IllegalTokenName(super.message, super.line, super.char);
 }

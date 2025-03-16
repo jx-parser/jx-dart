@@ -1,6 +1,6 @@
 /// JX parser
 ///
 /// Docs
-library jx;
+library;
 
 export 'src/parser.dart';

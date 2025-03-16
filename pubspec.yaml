@@ -1,11 +1,11 @@
 name: jx
 description: The dart jx parser. jx is a super-set of JSON that supports core JSON but adds many more powerful features, like comments, variables, functions and more.
-version: 1.0.5
+version: 1.0.7
 repository: https://github.com/jx-parser/jx-dart
 
 environment:
   sdk: '>=2.19.4 <3.0.0'
 
 dev_dependencies:
-  lints: ^2.0.0
+  lints: ^5.1.1
   test: ^1.21.0

@@ -1,3 +1,11 @@
+# 1.0.7
+
+_March 16, 2025_
+
+- Update packages
+- Linting fixes due to new linter rules
+- Fix support for scientific notation with -ve exponent
+
 ## 1.0.5
 
 _April 26, 2023_
