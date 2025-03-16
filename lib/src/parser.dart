@@ -229,13 +229,18 @@ class Token {
       _value = v;
     }
     if (type == TokenType.unknown) {
-      if (v == null || v == double.nan) {
+      if (v == null) {
         _value = null;
         type = TokenType.nullValue;
       } else if (v is String) {
         type = TokenType.string;
       } else if (v is double) {
-        type = TokenType.number;
+        if (v.isNaN) {
+          _value = null;
+          type = TokenType.nullValue;
+        } else {
+          type = TokenType.number;
+        }
       } else if (v is int) {
         type = TokenType.number;
       } else if (v is bool) {
@@ -493,7 +498,7 @@ class JxParser {
       // Unquoted string
       else if (CharCode.validIdentifier(c)) {
         string.writeCharCode(c);
-      } else if (c == CharCode.plus &&
+      } else if ((c == CharCode.plus || c == CharCode.minus) &&
           (peek(-2) == CharCode.E || peek(-2) == CharCode.e)) {
         string.writeCharCode(c);
       }
@@ -779,7 +784,6 @@ class JxParser {
       // Pushing object end
       case TokenType.closeBracket:
         // Process backwards to opening bracket (including function)
-        int i = 0;
         int stackLen = 0;
         while (true) {
           if (lastTokenType == TokenType.function) {

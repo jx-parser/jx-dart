@@ -1,8 +1,7 @@
-/// Built-in variables and functions supported by the JX parser
-///
-/// Additional supported functions can be implemented here
-
 import 'dart:math';
+
+/// Built-in variables and functions supported by the JX parser
+/// Additional supported functions can be implemented here
 
 /// Indicates the required type for each builtin function argument
 enum ArgType {

@@ -89,6 +89,7 @@ void main() {
   16750848.16750848,
   1234E+7,
   -1.0e3,
+  1.23e-4,
   "Hello, World!",
   true,
   false,
@@ -108,6 +109,7 @@ void main() {
       expect(result[i++], equals(16750848.16750848));
       expect(result[i++], equals(1234E+7));
       expect(result[i++], equals(-1.0e3));
+      expect(result[i++], equals(1.23e-4));
       expect(result[i++], equals('Hello, World!'));
       expect(result[i++], equals(true));
       expect(result[i++], equals(false));
